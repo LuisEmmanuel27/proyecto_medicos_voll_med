@@ -745,3 +745,14 @@ En resumen, con estos cambios, el método seleccionarMedico del servicio AgendaD
     Entonces, cuando ejecutas git push --set-upstream origin master, estás enviando los cambios de tu rama local "master" al repositorio remoto en GitHub y estableciendo que esta rama local "master" está siguiendo a la rama remota "master" en el repositorio remoto.
 
     Una vez que has establecido esta relación de seguimiento, en futuros push y pull, puedes usar simplemente git push y git pull sin necesidad de especificar las ramas locales y remotas, siempre que estés trabajando en la misma rama en la que estableciste el seguimiento.
+
+### Explicando como hacer push con los comandos:
+
+podemos actualizar los cambios que hagamos con los siguientes comandos:
+
+    $ git add .
+    $ git commit -m "Mensaje descriptivo del cambio"
+    $ git push origin <nombre-de-tu-rama>
+    $ git pull origin <nombre-de-tu-rama>
+
+En el caso de `git add .`, El punto (.) indica que se deben agregar todos los archivos modificados y nuevos en el directorio actual y sus subdirectorios.
