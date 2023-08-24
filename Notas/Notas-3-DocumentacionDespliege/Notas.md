@@ -688,3 +688,60 @@ La consulta @Query en este caso:
 -   Utiliza order by rand() para ordenar los médicos de forma aleatoria y limit 1 para seleccionar solo un médico.
 
 En resumen, con estos cambios, el método seleccionarMedico del servicio AgendaDeConsultaService ahora selecciona un médico disponible para la consulta según los criterios de especialidad y disponibilidad en la fecha dada. La consulta personalizada se realiza mediante la anotación @Query en el repositorio MedicoRepository.
+
+## Continuando...
+
+4.  Ahora subiremos el proyecto a GitHub, para ello abriremos la consola de git bash e iremos colocando los siguientes comandos:
+
+        $ git init
+        $ git status
+        $ git add *
+        $ git status
+        $ git commit -m "first commit"
+        $ git remote add origin https://github.com/LuisEmmanuel27/proyecto_medicos_voll_med.git
+        $ git push origin master
+        $ git pull origin master --allow-unrelated-histories
+        $ git push --set-upstream origin master
+
+### Explicacion de los comandos
+
+1. git init:
+   Este comando inicializa un nuevo repositorio de Git en el directorio actual. Crea una estructura de control de versiones de Git en la carpeta y te permite comenzar a realizar seguimiento de los cambios en tus archivos.
+
+2. git status:
+   Este comando te muestra el estado actual del repositorio. Te proporciona información sobre qué archivos han sido modificados, agregados al área de preparación o están sin seguimiento.
+
+3. git add _:
+   Este comando agrega todos los archivos modificados y nuevos al área de preparación. El asterisco (_) se utiliza para seleccionar todos los archivos. Esto prepara los cambios para el próximo commit.
+
+4. git status:
+   Nuevamente, usas git status para ver cómo se ha actualizado el estado del repositorio después de agregar los archivos al área de preparación. Ahora los archivos que has agregado deberían aparecer en el área de preparación.
+
+5. git commit -m "first commit":
+   Con este comando, creas un commit que incluye los cambios en el área de preparación. El mensaje entre comillas después de -m es una descripción concisa del contenido del commit. En este caso, estás realizando el "primer commit" con los cambios que agregaste.
+
+6. git remote add origin https://github.com/LuisEmmanuel27/proyecto_medicos_voll_med.git:
+   Este comando establece una conexión entre tu repositorio local y un repositorio remoto en GitHub. "Origin" es el nombre comúnmente utilizado para referirse al repositorio remoto.
+
+7. git push origin master:
+   Con este comando, estás enviando tus commits locales al repositorio remoto en la rama "master". Esto sube tus cambios y actualizaciones al repositorio en línea en GitHub.
+
+8. git pull origin master --allow-unrelated-histories:
+   Este comando se utiliza para traer los cambios desde el repositorio remoto en la rama "master" y fusionarlos en tu rama local. La opción --allow-unrelated-histories se usa si los historiales de ambos repositorios no están relacionados. Sin embargo, es importante señalar que no es necesario ejecutar git pull inmediatamente después de haber hecho un git push. Puedes usar git pull cuando quieras actualizar tu repositorio local con los cambios del repositorio remoto.
+
+9. git push --set-upstream origin master:
+   se utiliza para establecer una relación de seguimiento entre tu rama local y una rama remota. Esto significa que después de ejecutar este comando, no necesitas especificar explícitamente la rama remota y local cuando realices futuros push o pull. En su lugar, puedes simplemente usar git push o git pull, y Git sabrá a qué rama remota y local se refiere.
+
+    Aquí hay una explicación más detallada de cada parte del comando:
+
+    - git push: El comando para enviar tus cambios locales al repositorio remoto.
+
+    - --set-upstream (también conocido como -u): Esto establece la rama remota como rama de seguimiento para la rama local actual. Esto significa que tu rama local "sabe" a qué rama remota está vinculada, lo que simplifica futuras operaciones de push y pull.
+
+    - origin: El nombre del control remoto. En este caso, estás utilizando "origin" como el nombre del control remoto que apunta al repositorio remoto en GitHub.
+
+    - master: El nombre de la rama local que deseas vincular con la rama remota en GitHub. En este caso, estás utilizando "master".
+
+    Entonces, cuando ejecutas git push --set-upstream origin master, estás enviando los cambios de tu rama local "master" al repositorio remoto en GitHub y estableciendo que esta rama local "master" está siguiendo a la rama remota "master" en el repositorio remoto.
+
+    Una vez que has establecido esta relación de seguimiento, en futuros push y pull, puedes usar simplemente git push y git pull sin necesidad de especificar las ramas locales y remotas, siempre que estés trabajando en la misma rama en la que estableciste el seguimiento.
