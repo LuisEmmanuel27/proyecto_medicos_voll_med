@@ -756,3 +756,5 @@ podemos actualizar los cambios que hagamos con los siguientes comandos:
     $ git pull origin <nombre-de-tu-rama>
 
 En el caso de `git add .`, El punto (.) indica que se deben agregar todos los archivos modificados y nuevos en el directorio actual y sus subdirectorios.
+
+# Continuacion en notas2.md
