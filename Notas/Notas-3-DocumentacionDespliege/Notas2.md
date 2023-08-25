@@ -402,3 +402,115 @@ Es decir, Spring Data JPA analizará el nombre del método y generará una consu
         }
 
 # Aplicando principios SOLID
+
+Ahora ya que tenemos todas las clases con cada una de las validaciones toca aplicarlas al momento de hacer uso de nuestro `AgendaDeConsultaService.java`, pero si colocamos una a una en dicha clase y en algun momento por reglas del negocio se elimina una de estas validaciones tendriamos que eliminar dicha clase y estar modificando `AgendaDeConsultaService.java`, para evitar eso debemos hacer uso de polimorfismo en el sentido de los principios de `SOLID`, si nos fijamos en cada uno de los metodos de validacion tienen algo en comun y es:
+
+    public void validar(DatosAgendarConsulta datos)
+
+asi que en base a eso vamos a crear una interface para indicar que es un patron que se debe seguir.
+
+1.  Para comenzar con lo anterior vamos a el paquete `validaciones` y crearemos la interface `ValidadorDeConsultas.java`
+
+2.  Recordando que tienen en comun todos los validadores agregamos el siguiente codigo:
+
+        package med.voll.api.domain.consulta.validaciones;
+
+        import med.voll.api.domain.consulta.DatosAgendarConsulta;
+
+        public interface ValidadorDeConsultas {
+            public void validar(DatosAgendarConsulta datos);
+        }
+
+3.  Ahora simplemente en cada validador que hicimos colocaremos el `implements ValidadorDeConsultas`, ademas de hacer uso de la notacion @Component de spring por ejemplo:
+
+        @Component
+        public class MedicoConConsulta implements ValidadorDeConsultas
+
+### Explicacion de lo realizado:
+
+#### Principio SOLID - Responsabilidad Única (Single Responsibility Principle):
+
+El principio SOLID de Responsabilidad Única establece que una clase debe tener una única razón para cambiar. En otras palabras, una clase debe tener una sola responsabilidad en el sistema. Al aplicar este principio, se busca evitar que una clase realice demasiadas tareas distintas y, en cambio, dividirlas en clases más pequeñas y especializadas.
+
+#### Polimorfismo:
+
+El polimorfismo es un concepto de la programación orientada a objetos que permite que diferentes objetos respondan a un mismo mensaje o llamada de método de manera distinta. En este caso, estás aplicando polimorfismo mediante una interfaz común (`ValidadorDeConsultas`) que define un método `validar`. Varios validadores diferentes implementan esta interfaz y proporcionan su propia implementación del método `validar`.
+
+#### Cambios Realizados y Explicación:
+
+-   Se creó una interfaz llamada ValidadorDeConsultas que define un método validar(DatosAgendarConsulta datos) común a todos los validadores.
+
+-   Cada validador, como MedicoConConsulta, implementa la interfaz ValidadorDeConsultas, lo que significa que todos estos validadores deben proporcionar una implementación del método validar.
+
+-   Se agregó la anotación @Component a cada validador, lo que indica que estos componentes serán gestionados por Spring y se les permitirá ser inyectados en otras clases mediante la anotación @Autowired.
+
+-   Si un validador necesita acceder a un repositorio, como ConsultaRepository, se agregó la anotación @Autowired para permitir que Spring inyecte automáticamente la instancia del repositorio en la clase.
+
+#### Relación con Principios SOLID:
+
+-   Responsabilidad Única (SRP): Al definir la interfaz ValidadorDeConsultas, se está separando la responsabilidad de validar las consultas en clases independientes, cada una con su propia implementación específica.
+
+-   Abierto/Cerrado (OCP): La estructura basada en interfaces permite agregar nuevos validadores en el futuro sin modificar el código existente, siguiendo el principio de que las clases deben estar abiertas a extensiones pero cerradas a modificaciones.
+
+#### Ventajas de este Enfoque:
+
+-   Reusabilidad: Al definir una interfaz común, se puede reutilizar el código al inyectar diferentes validadores donde sea necesario.
+
+-   Flexibilidad: Se pueden agregar nuevos validadores o cambiar su lógica sin afectar la clase que agenda las consultas.
+
+-   Mantenibilidad: Cada validador tiene una responsabilidad única y se puede modificar o extender de manera aislada sin afectar otras partes del sistema.
+
+En resumen, al aplicar el principio SOLID del polimorfismo a través de una interfaz común y clases especializadas, estás creando una estructura que permite la reutilización, la flexibilidad y la mantenibilidad de la lógica de validación de consultas en tu aplicación.
+
+## Continuando...
+
+4.  Ahora con todo lo anterior realizado podemos volver a `AgendaDeConsultasService.java` y agregar las siguientes lineas de codigo:
+
+        @Autowired
+        List<ValidadorDeConsultas> valdadores;
+
+### Explicacion del codigo:
+
+-   @Autowired: Esta anotación le indica a Spring que debe inyectar automáticamente una instancia de la lista validadores. Spring escaneará el contexto de la aplicación en busca de todas las implementaciones de la interfaz ValidadorDeConsultas y las agregará a esta lista.
+
+-   `List<ValidadorDeConsultas> validadores`: Aquí estás definiendo una lista de objetos que implementan la interfaz ValidadorDeConsultas. Cada elemento en esta lista será un validador específico que verifica diferentes condiciones.
+
+#### Cómo Funciona:
+
+-   Cuando Spring inyecta la lista validadores, busca todas las clases que implementan la interfaz ValidadorDeConsultas y las agrega automáticamente a la lista.
+
+-   Esto se basa en el concepto de descubrimiento automático de componentes en Spring. Spring escanea el classpath en busca de clases que tengan la anotación @Component (u otras anotaciones similares) y las registra como componentes administrados por Spring.
+
+-   Esto permite que la lista validadores contenga todas las implementaciones de validadores disponibles en el sistema.
+
+#### Ventajas:
+
+-   Flexibilidad: Puedes agregar nuevos validadores simplemente creando nuevas clases que implementen la interfaz ValidadorDeConsultas y anotándolas con @Component.
+
+-   Cambios sin modificar el código: No necesitas modificar la clase AgendaDeConsultasService cada vez que agregas un nuevo validador. Esto cumple con el principio Open/Closed del principio SOLID.
+
+## Continuando...
+
+5.  finalmente solo colocaremos un forEach y un arrow function para hacer que se apliquen cada uno de los validadores con los datos enviados:
+
+        public void agendar(DatosAgendarConsulta datos) {
+
+                if (pacienteRepository.findById(datos.idPaciente()).isPresent()) {
+                    throw new ValidacionDeIntegridad("este id para el paciente no fue encontrado");
+                }
+
+                if (datos.idMedico() != null && medicoRepository.existsById(datos.idMedico())) {
+                    throw new ValidacionDeIntegridad("este id para el medico no fue encontrado");
+                }
+
+                validadores.forEach(val -> val.validar(datos)); // Arrow Function
+
+                var paciente = pacienteRepository.findById(datos.idPaciente()).get();
+                var medico = seleccionarMedico(datos);
+
+                var consulta = new Consulta(null, medico, paciente, datos.fecha());
+                consultaRepository.save(consulta);
+
+            }
+
+# Testeando la agenda

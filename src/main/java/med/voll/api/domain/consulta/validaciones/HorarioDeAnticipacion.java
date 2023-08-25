@@ -5,7 +5,10 @@ import med.voll.api.domain.consulta.DatosAgendarConsulta;
 
 import java.time.*;
 
-public class HorarioDeAnticipacion {
+import org.springframework.stereotype.Component;
+
+@Component
+public class HorarioDeAnticipacion implements ValidadorDeConsultas {
     public void validar(DatosAgendarConsulta datos) {
         var ahora = LocalDateTime.now();
         var horaDeConsulta = datos.fecha();
