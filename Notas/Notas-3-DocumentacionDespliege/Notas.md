@@ -519,11 +519,11 @@ En resumen, el AgendaDeConsultaService coordina la lógica de agendamiento y se 
 
         public void agendar(DatosAgendarConsulta datos) {
 
-            if (pacienteRepository.findById(datos.idPaciente()).isPresent()) {
+            if (!pacienteRepository.findById(datos.idPaciente()).isPresent()) {
                 throw new ValidacionDeIntegridad("este id para el paciente no fue encontrado");
             }
 
-            if (datos.idMedico() != null && medicoRepository.existsById(datos.idMedico())) {
+            if (datos.idMedico() != null && !medicoRepository.existsById(datos.idMedico())) {
                 throw new ValidacionDeIntegridad("este id para el medico no fue encontrado");
             }
 
@@ -543,9 +543,9 @@ En resumen, el AgendaDeConsultaService coordina la lógica de agendamiento y se 
 
 En este servicio, se ha agregado la lógica de validación para garantizar la integridad de los datos antes de agendar una consulta.
 
--   if (pacienteRepository.findById(datos.idPaciente()).isPresent()): Esta línea verifica si el paciente con el ID proporcionado existe en la base de datos. Si no existe, lanza una excepción ValidacionDeIntegridad con un mensaje explicativo.
+-   if (!pacienteRepository.findById(datos.idPaciente()).isPresent()): Esta línea verifica si el paciente con el ID proporcionado existe en la base de datos. Si no existe, lanza una excepción ValidacionDeIntegridad con un mensaje explicativo.
 
--   if (datos.idMedico() != null && medicoRepository.existsById(datos.idMedico())): Esta línea verifica si se proporcionó un ID de médico y si existe en la base de datos. Si existe, lanza una excepción ValidacionDeIntegridad con un mensaje explicativo.
+-   if (datos.idMedico() != null && !medicoRepository.existsById(datos.idMedico())): Esta línea verifica si se proporcionó un ID de médico y si existe en la base de datos. Si existe, lanza una excepción ValidacionDeIntegridad con un mensaje explicativo.
 
 -   En ambos casos de validación, se utiliza una excepción personalizada ValidacionDeIntegridad para señalar que ha ocurrido un problema de integridad de datos.
 

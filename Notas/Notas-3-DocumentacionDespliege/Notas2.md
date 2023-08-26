@@ -495,11 +495,11 @@ En resumen, al aplicar el principio SOLID del polimorfismo a través de una inte
 
         public void agendar(DatosAgendarConsulta datos) {
 
-                if (pacienteRepository.findById(datos.idPaciente()).isPresent()) {
+                if (!pacienteRepository.findById(datos.idPaciente()).isPresent()) {
                     throw new ValidacionDeIntegridad("este id para el paciente no fue encontrado");
                 }
 
-                if (datos.idMedico() != null && medicoRepository.existsById(datos.idMedico())) {
+                if (datos.idMedico() != null && !medicoRepository.existsById(datos.idMedico())) {
                     throw new ValidacionDeIntegridad("este id para el medico no fue encontrado");
                 }
 
