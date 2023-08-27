@@ -32,4 +32,17 @@ public class Consulta {
 
     private LocalDateTime fecha;
 
+    private String motivoCancelacion;
+    private Boolean activo = true;
+
+    public void agregarMotivoCancelacion(DatosCancelarConsulta datosCancelarConsulta) {
+        if (datosCancelarConsulta.motivoCancelacion() != null) {
+            this.motivoCancelacion = datosCancelarConsulta.motivoCancelacion();
+        }
+    }
+
+    public void desactivarConsulta() {
+        this.activo = false;
+    }
+
 }
