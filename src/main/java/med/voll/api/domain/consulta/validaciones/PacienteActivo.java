@@ -16,13 +16,14 @@ public class PacienteActivo implements ValidadorDeConsultas {
     public void validar(DatosAgendarConsulta datos) {
 
         if (datos.idPaciente() == null) {
+            System.out.println("uy aqui tampoco llegamos muy lejos");
             return;
         }
 
         var pacienteActivo = pacienteRepository.findActivoById(datos.idPaciente());
 
         if (!pacienteActivo) {
-            throw new ValidationException("NO permitir agendar citas con medicos inactivos en el sistema");
+            throw new ValidationException("NO permitir agendar citas con pacientes inactivos en el sistema");
         }
 
     }

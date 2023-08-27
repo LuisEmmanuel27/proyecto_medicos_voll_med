@@ -187,7 +187,7 @@ La clase PacienteActivo es una clase de validación que verifica si un paciente 
     @Query("""
             select p.activo
             from Paciente p
-            where p.id =: idPaciente
+            where p.id=:idPaciente
             """)
     Boolean findActivoById(Long idPaciente);
 
@@ -199,7 +199,7 @@ La clase PacienteActivo es una clase de validación que verifica si un paciente 
 
     -   from Paciente p establece el alias p para la entidad Paciente. Esto nos permite referirnos a la entidad de manera abreviada en la consulta.
 
-    -   where p.id = :idPaciente es la cláusula WHERE de la consulta. Estamos filtrando las filas de la tabla Paciente donde el valor del atributo id coincide con el valor proporcionado en el parámetro idPaciente.
+    -   where p.id=:idPaciente es la cláusula WHERE de la consulta. Estamos filtrando las filas de la tabla Paciente donde el valor del atributo id coincide con el valor proporcionado en el parámetro idPaciente.
 
     -   :idPaciente es un parámetro de consulta. En este caso, es un parámetro nombrado que se vinculará con el valor proporcionado en el método findActivoById.
 
@@ -244,7 +244,7 @@ La clase PacienteActivo es una clase de validación que verifica si un paciente 
         @Query("""
                     select m.activo
                     from Medico m
-                    where m.id =: idMedico
+                    where m.id=:idMedico
                         """)
             Boolean findActivoById(Long idMedico);
 
@@ -514,3 +514,181 @@ En resumen, al aplicar el principio SOLID del polimorfismo a través de una inte
             }
 
 # Testeando la agenda
+
+## Nota importante:
+
+Al momento de compilar si dejamos las cosas como estan nos dara error, ya que hay un par de problemas a solucionar.
+
+-   En primera modificamos los nombres de los metodos en ConsultaRepository:
+
+    public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
+
+          Boolean existsByPacienteIdAndFechaBetween(Long idPaciente, LocalDateTime primerHorario,
+                  LocalDateTime ultimoHorario);
+
+          Boolean existsByMedicoIdAndFecha(Long idMedico, LocalDateTime fecha);
+
+    }
+
+Pasamos de Data a Fecha
+
+-   En segunda en MedicoRepository modificamos la primera query para que en vez de `m.activo = 1` sea `m.activo = true` y cambiamos el nombre del metodo igual cambiando Data por Fecha:
+
+          @Query("""
+                  select m from Medico m
+                  where m.activo= true
+                  and
+                  m.especialidad=:especialidad
+                  and
+                  m.id not in(
+                      select c.medico.id from Consulta c
+                      where
+                      c.fecha=:fecha
+                  )
+                  order by rand()
+                  limit 1
+                  """)
+          Medico seleccionarMedicoConEspecialidadEnFecha(Especialidad especialidad, LocalDateTime fecha);
+
+Una vez realizado lo anterior no deberiamos tener problemas de momento
+
+## Continuando...
+
+1.  Compilamos el codigo y vamos a probar cada una de las validaciones, claro enviado la informacion de manera erronea para que nos salten dichos problemas
+
+2.  vamos al thunder, insomnia o postman y probaremos el POST de agendar consulta que creamos hace tiempo y colocaremos el siguiente cuerpo (recordando claro tener un token valido de login):
+
+        {
+            "idPaciente":"17765764",
+            "idMedico":"1",
+            "fecha":"2023-10-12T10:30"
+        }
+
+3.  lo anterior nos dara un 403 forbbiden y en la consola nos dara el mensaje de error que colocamos, el de: `med.voll.api.infra.errores.ValidacionDeIntegridad: este id para el paciente no fue encontrado`
+
+4.  claro que nos seria mas util dicho error verlo en el cuerpo de thunder, insomnia o postman. Por lo que es necesario hacer un par de cambios
+
+5.  vamos al `TratadorDeErrores.java` y en base a que en consola si nos fijamos bien en el mensaje el error lo trata el `ValidacionDeIntegridad` colocaremos el siguiente metodo:
+
+        @ExceptionHandler(ValidacionDeIntegridad.class)
+        public ResponseEntity<String> errorHandlerValidacionesDeNegocio(Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+6.  compilamos y volvemos a intentar agendar erroneamente la consulta y esta vez veremos el mensaje de error en el body de la respuesta
+
+7.  ahora probamos lo siguiente:
+
+        {
+            "idPaciente":"1",
+            "idMedico":"199",
+            "fecha":"2023-10-12T10:30"
+        }
+
+8.  ahora intentamos donde si debe funcionar, osea con algo como esto:
+
+        {
+            "idPaciente":"1",
+            "idMedico":"2",
+            "fecha":"2023-10-12T10:30"
+        }
+
+9.  Pero recordemos que en el Controller retornamos todo null asi que debemos modificar eso, para ello vovemos al `ConsultaController.java`:
+
+        @PostMapping
+        @Transactional
+        public ResponseEntity<DatosDetalleConsulta> agendar(@RequestBody @Valid DatosAgendarConsulta datos) {
+            var response = service.agendar(datos);
+            return ResponseEntity.ok(response);
+        }
+
+10. Luego de eso iremos al `AgendaDeConsultaService.java` y realizaremos los siguientes cambios:
+
+        public DatosDetalleConsulta agendar(DatosAgendarConsulta datos) {
+
+            if (!pacienteRepository.findById(datos.idPaciente()).isPresent()) {
+                throw new ValidacionDeIntegridad("este id para el paciente no fue encontrado");
+            }
+
+            if (datos.idMedico() != null && !medicoRepository.existsById(datos.idMedico())) {
+                throw new ValidacionDeIntegridad("este id para el medico no fue encontrado");
+            }
+
+            validadores.forEach(val -> val.validar(datos));
+
+            var paciente = pacienteRepository.findById(datos.idPaciente()).get();
+            var medico = seleccionarMedico(datos);
+
+            var consulta = new Consulta(null, medico, paciente, datos.fecha());
+            consultaRepository.save(consulta);
+
+            return new DatosDetalleConsulta(consulta);
+
+        }
+
+11. lo cual nos lleva a crear un cambio en `DatosDetalleConsulta.java` osea un constructor que queda de la siguiente manera:
+
+        public DatosDetalleConsulta(Consulta consulta) {
+            this(
+                    consulta.getId(),
+                    consulta.getMedico().getId(),
+                    consulta.getPaciente().getId(),
+                    consulta.getFecha());
+        }
+
+12. volvemos a compilar y probamos el POST con algo como esto:
+
+        {
+            "idPaciente":"2",
+            "idMedico":"4",
+            "fecha":"2023-10-12T10:30"
+        }
+
+    y veremos el body de la respuesta es algo asi:
+
+        {
+            "id": 2,
+            "idPaciente": 4,
+            "idMedico": 2,
+            "fecha": "2023-10-12T10:30:00"
+        }
+
+13. nos daremos cuenta que con ciertas validaciones como las de que el medico ya tiene una consulta reservada en el mismo horario no vienen de `ValidacionDeIntegridad` si no de otro lado, por ejemplo ese y otros errores vienen de `ValidationException` por lo que no saldra nada en el body de la peticion, asi que tenemos que volver a `TratadorDeErrores` y agregar el metodo que resuleva eso:
+
+        @ExceptionHandler(ValidacionDeIntegridad.class)
+        public ResponseEntity<String> errorHandlerValidacionesDeIntegridad(Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+        @ExceptionHandler(ValidationException.class)
+        public ResponseEntity<String> errorHandlerValidacionesDeNegocio(Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    De paso le cambiamos el nombre al metodo que antes creamos, cambiando Negocio por Inegridad.
+
+14. ahora si hacemos algo como esto:
+
+        {
+            "idPaciente":"2",
+            "idMedico":"",
+            "especialidad": "ORTOPEDIA",
+            "fecha":"2023-10-21T11:30"
+        }
+
+    en ocaciones funciona pero tambien en otras nos tira este error:
+
+        java.sql.SQLIntegrityConstraintViolationException: Column 'medico_id' cannot be null
+
+15. Para resolver lo anterior tendremos que volver a `AgendaDeConsultaService` y agregar una validacion que omitimos:
+
+        var medico = seleccionarMedico(datos);
+        if (medico == null) {
+            throw new ValidacionDeIntegridad("No existen medicos disponibles para este horario y especialidad");
+        }
+
+    la cual es simplemente si no obtenemos un medico de la seleccion aleatorea mandamos el mensaje de error, compilamos y volvemos a probar.
+
+# Ejercicio
+
+Agregar la cancelacion de consultas, donde forzosamente se debe enviar motivo de cancelacion y estas deben hacerse por lo menos 24 horas antes de la misma

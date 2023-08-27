@@ -17,7 +17,7 @@ public class MedicoConConsulta implements ValidadorDeConsultas {
             return;
         }
 
-        var medicoConConsulta = consultaRepository.existByMedicoIdAndData(datos.idMedico(), datos.fecha());
+        var medicoConConsulta = consultaRepository.existsByMedicoIdAndFecha(datos.idMedico(), datos.fecha());
 
         if (medicoConConsulta) {
             throw new ValidationException("El medico ya tiene una consulta para ese mismo horario");
