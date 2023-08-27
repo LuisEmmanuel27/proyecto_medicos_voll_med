@@ -693,4 +693,134 @@ Una vez realizado lo anterior no deberiamos tener problemas de momento
 
 Agregar la cancelacion de consultas, donde forzosamente se debe enviar motivo de cancelacion y estas deben hacerse por lo menos 24 horas antes de la misma
 
+## Solucion del video:
+
+-   En `ConsultasController.java` se agrega el siguiente metodo:
+
+          @DeleteMapping
+          @Transactional
+          public ResponseEntity cancelar(@RequestBody @Valid DatosCancelamientoConsulta datos){
+              service.cancelar(datos);
+              return ResponseEntity.noContent().build();
+          }
+
+-   En `AgendaDeConsultaService.java` se agrega el metodo `cancelar`:
+
+          public void cancelar(DatosCancelamientoConsulta datos){
+              if(!consultaRepository.existsById(datos.idConsulta())){
+                  throw new ValidacionDeIntegridad("Id de la consulta informado no existe");
+              }
+
+              validadoresCancelamiento.forEach(v -> v.validar(datos));
+
+              var consulta = consultaRepository.getReferenceById(datos.idConsulta());
+              consulta.cancelar(datos.motivo());
+          }
+
+-   Se crea un paquete nuevo dentro de `consulta` de nombre `desafio` y dentro de este se crean un par de archivos, entre estos el `ValidadorHorarioAntecedencia.java`:
+
+          @Component("ValiladorHorarioAntecedenciaCancelamiento")
+          public class ValidadorHorarioAntecedencia implements ValidadorCancelamientoDeConsulta{
+              @Autowired
+              private ConsultaRepository consultaRepository;
+
+              @Override
+              public void validar(DatosCancelamientoConsulta datos){
+                  var consulta = consultaRespository.getReferenceById(datos.idConsulta());
+                  var hora = LocalDateTime.now();
+                  var diferenciaEnHoras = Duration.between(ahora, consulta.getFecha().toHours());
+
+                  if(diferenciaEnHoras < 24){
+                      throw new ValidationException("Mensaje de error");
+                  }
+              }
+          }
+
+-   Dentro de la entidad `Consulta.java` agrega un par de cosas, luego de la declaracion de la variable `fecha` seguiria lo siguiente:
+
+          @Column(name = "motivo_cancelamiento")
+          @Enumerated(EnumType.STRING)
+          private MotivoCancelamiento = motivoCancelamiento;
+
+          // esto nos sirve para esta linea de codigo dentro de AgendaDeConsultaService: var consulta = new Consulta(medico, paciente, datos.fecha());
+          public Consulta(Medico medico, Paciente paciente, LocalDateTime fecha){
+              this.medico = medico;
+              this.paciente = paciente;
+              this.fecha = fecha;
+          }
+
+          public void cancelar(MotivoCancelamiento motivo){
+              this.motivoCancelamiento = motivo;
+          }
+
+-   Se crea un ENUM con los motivos de cancelamiento de nombre `MotivoCancelamiento.java` esto dentro del paquete de `consulta`:
+
+          public enum MotivoCancelamiento{
+              PACIENTE_DECISTIO,
+              MEDICO_CANCELO,
+              OTROS;
+          }
+
+-   Tambien dentro del paquete `desafio` esta la interface `ValidadorCancelamientoDeConsulta` esta es facil deducir que contiene en base a los codigos anteriores.
+
+## Explicando diferencias entre mi solucion y la del video:
+
+### Mi enfoque:
+
+1. Separación de responsabilidades: Dividiste las responsabilidades entre diferentes clases, como la validación del tiempo de cancelación en CancelarConsultaService, la manipulación de la entidad Consulta en sus métodos y el controlador en sí.
+
+2. Validación previa en DTO: Validaste que el motivo de cancelación no estuviera vacío en el DTO antes de realizar la acción de cancelación. También validaste el tiempo de cancelación en el servicio CancelarConsultaService.
+
+3. Borrado lógico: Utilizaste un enfoque de borrado lógico, marcando la consulta como inactiva (activo = false) y agregando un motivo de cancelación en la entidad Consulta.
+
+4. Utilización de una clase de validación: Creamos una clase ValidarCancelarConsulta para manejar la validación del tiempo de cancelación antes de realizar la acción.
+
+### Enfoque del video:
+
+1. HTTP DELETE: Utilizaron el método HTTP DELETE para cancelar la consulta en lugar de PUT.
+
+2. Centralización de validaciones: Centralizaron todas las validaciones en la clase ValidadorHorarioAntecedencia, que se encarga de validar el tiempo de antelación para cancelar.
+
+3. Enum para motivo de cancelación: Introdujeron un enum MotivoCancelamiento para identificar el motivo de cancelación de manera más estructurada.
+
+4. Método cancelar en la entidad: Agregaron un método cancelar en la entidad Consulta para manejar la acción de cancelación y establecer el motivo.
+
+### Comparación y consideraciones:
+
+Mi enfoque es sólido y cumple con los requisitos. Separaste las responsabilidades y validaciones en diferentes clases, lo que hace que el código sea más modular y más fácil de mantener en el futuro. También incluiste el borrado lógico y validaste tanto en el DTO como en el servicio.
+
+El enfoque del video también es válido y presenta algunas ventajas. Al centralizar todas las validaciones en una clase, se logra una mayor cohesión y facilita la gestión de las reglas de negocio relacionadas con la cancelación. El uso de un enum para el motivo de cancelación puede hacer que el código sea más legible y menos propenso a errores.
+
+Ambos enfoques tienen méritos y cumplen su objetivo. La elección entre ellos puede depender de la complejidad de las reglas de negocio, la estructura de tu proyecto y tu preferencia personal. En términos de mantenibilidad y escalabilidad, el enfoque del video tiende a ser más estructurado, pero eso no significa que tu enfoque sea incorrecto. La clave es mantener un código limpio, modular y fácil de entender.
+
 # Documentando con Spring Doc
+
+1.  Vamos a googlear openAPI springdoc y deberia abrirnos la siguiente pagina: <a href="https://springdoc.org/">doc de openApi</a>
+
+2.  Copiamos la dependencia que esta presente dentro de Gettin Started y lo agregamos a nuestro pom.xml
+
+3.  Seguido de eso en la documentacion aparecen 2 URLs que son las que nos proporciona openAPI pero como tenemos nuestra seguridad por token si las intentamos utilizar asi como asi nos dara error, por lo que debemos ir a `SecurityConfigurations.java` y agregaremos dichas urls:
+
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+            return httpSecurity
+                    .csrf(csrf -> csrf.disable())
+                    .sessionManagement(sessionManagement -> sessionManagement
+                            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+                            .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                            .requestMatchers("/swagger-ui.html", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                            .anyRequest().authenticated())
+                    .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
+                    .build();
+        }
+
+    Notaremos el `/**` con eso indicamos que permitimos las demas paginar derivadas de dichas url
+
+4.  despues de eso compilamos y podremos acceder a la siguiente pagina: <a href="http://localhost:8080/v3/api-docs">vista json de los endpoints de la aplicacion</a>
+
+5.  tambien podremos acceder a una vista mas grafica por medio de la siguiente pagina: <a href="http://localhost:8080/swagger-ui/index.html">vista de swagger</a>
+
+6.  hay cosas interesantes que revisar en swagger como la forma en que podemos usar los token, agregar opciones nuevas, etc. pero esp es algo que tocaremos en el siguiente tema.
+
+# Continuacion en Notas3.md

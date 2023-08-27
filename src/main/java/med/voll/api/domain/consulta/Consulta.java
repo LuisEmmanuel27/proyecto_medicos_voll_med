@@ -36,6 +36,12 @@ public class Consulta {
     private String motivoCancelacion;
     private Boolean activo = true;
 
+    public Consulta(Medico medico, Paciente paciente, LocalDateTime fecha) {
+        this.medico = medico;
+        this.paciente = paciente;
+        this.fecha = fecha;
+    }
+
     public void agregarMotivoCancelacion(DatosCancelarConsulta datosCancelarConsulta) {
         if (datosCancelarConsulta.motivoCancelacion() != null && datosCancelarConsulta.motivoCancelacion() != "") {
             this.motivoCancelacion = datosCancelarConsulta.motivoCancelacion();
