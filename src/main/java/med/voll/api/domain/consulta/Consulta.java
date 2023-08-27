@@ -1,6 +1,7 @@
 package med.voll.api.domain.consulta;
 
 import jakarta.persistence.*;
+import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -36,8 +37,10 @@ public class Consulta {
     private Boolean activo = true;
 
     public void agregarMotivoCancelacion(DatosCancelarConsulta datosCancelarConsulta) {
-        if (datosCancelarConsulta.motivoCancelacion() != null) {
+        if (datosCancelarConsulta.motivoCancelacion() != null && datosCancelarConsulta.motivoCancelacion() != "") {
             this.motivoCancelacion = datosCancelarConsulta.motivoCancelacion();
+        } else {
+            throw new ValidationException("No estas especificando el motivo de cancelacion");
         }
     }
 

@@ -692,3 +692,5 @@ Una vez realizado lo anterior no deberiamos tener problemas de momento
 # Ejercicio
 
 Agregar la cancelacion de consultas, donde forzosamente se debe enviar motivo de cancelacion y estas deben hacerse por lo menos 24 horas antes de la misma
+
+# Documentando con Spring Doc
