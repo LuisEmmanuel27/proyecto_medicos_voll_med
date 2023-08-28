@@ -58,7 +58,7 @@ Recordando el problema que se nos presenta mal final de `Notas2.md`, para resolv
 
 7.  volvemos a la pagina de <a href="http://localhost:8080/swagger-ui/index.html">swagger</a> y notaremos que ahora aparece un boton de `Authorize` en el cual una vez generemos nuestro token prodremos dar click ahi y colocarlo para asi poder hacer uso de nuestras demas consultas
 
-# Testes con Spring Boot
+# Tests con Spring Boot
 
 ## Test de caja blanca y negra
 
@@ -77,3 +77,116 @@ Las pruebas de caja negra, por otro lado, se centran en el comportamiento extern
 En el contexto de Java Spring Boot, las pruebas de caja negra podrían incluir pruebas de integración o pruebas de extremo a extremo, donde se simulan interacciones de usuarios o de sistemas externos con la aplicación y se evalúa si se obtienen los resultados correctos según los requisitos.
 
 En resumen, la principal diferencia entre las pruebas de caja blanca y las de caja negra radica en si se tiene conocimiento sobre la estructura interna del código (caja blanca) o si solo se evalúa el comportamiento externo (caja negra) de una aplicación. Ambos enfoques son importantes para asegurar la calidad de un software, y generalmente se utilizan en conjunto para lograr una cobertura integral de pruebas.
+
+1.  Si hemos estado atentos cada que agregamos dependencias al pom.xml habremos visto que hay una sobre test que es la que ya nos permite hacer uso de cosas como mockito y JUnit para realizar dichos test, en este caso de hara uso de JUnit
+
+2.  empezaremos por hacer pruebas a los metodos de `MedicoRepository` pero los que hacen uso de `@Query`, para ello primero iremos a la carpeta que ya existe de test y dentro de `/api` creamos el paquete `domain` y dentro de este otro paquete `medico` y finalmente dentro de este creamos la clase `MedicoRepositoryTest.java` y agregamos de momento el siguiente codigo:
+
+        package med.voll.api.domain.medico;
+
+        import org.junit.jupiter.api.Test;
+
+        class MedicoRepositoryTest {
+
+            @Test
+            void seleccionarMedicoConEspecialidadEnFecha() {
+
+            }
+
+        }
+
+3.  prubamos corriendo el test que obvio pasara automaticamente ya que no contiene nada y de paso borramos el test que ya viene por defecto de nombre `ApiApplicationTest` ya que no lo utilizaremos
+
+4.  ahora agregaremos una nueva notacion sobre el nombre de la clase:
+
+        @DataJpaTest
+        class MedicoRepositoryTest
+
+    si corremos de nuevo el test esta vez fallara
+
+### Explicacion del codigo:
+
+@DataJpaTest es una anotación proporcionada por Spring Boot para pruebas de integración con JPA (Java Persistence API). Cuando agregas @DataJpaTest a una clase de prueba, Spring Boot realiza varias configuraciones y acciones automáticas para facilitar las pruebas relacionadas con la capa de acceso a datos (como repositorios JPA).
+
+Las funcionalidades clave de @DataJpaTest incluyen:
+
+-   Configuración automática del contexto de Spring: @DataJpaTest configura automáticamente el contexto de Spring para cargar solo las clases relevantes para JPA, como los repositorios, entidades, etc. Esto ayuda a mantener las pruebas enfocadas y livianas, evitando la carga innecesaria de componentes no relacionados con JPA.
+
+-   Creación de la base de datos en memoria: Spring Boot configurará automáticamente una base de datos en memoria (como H2) para las pruebas. Esto permite simular el comportamiento de la base de datos real sin afectar el entorno de desarrollo o producción.
+
+-   Configuración de transacciones: @DataJpaTest configura transacciones para tus pruebas. Cada prueba se ejecutará en una transacción separada y se revertirá al final, lo que garantiza que los cambios en la base de datos no se propaguen entre las pruebas.
+
+Ahora, en cuanto a tu situación actual: cuando agregamos @DataJpaTest, es posible que el comportamiento de nuestras pruebas haya cambiado debido a la creación de una base de datos en memoria y la configuración de transacciones.
+
+Si tu prueba no pasó después de agregar @DataJpaTest, podría ser debido a factores como:
+
+-   Datos de prueba necesarios: Para probar la consulta seleccionarMedicoConEspecialidadEnFecha, es posible que necesites datos específicos en tu base de datos en memoria para que la consulta funcione como se espera.
+
+-   Transacciones y rollback: Si estás realizando cambios en la base de datos durante la prueba (por ejemplo, insertando datos), esos cambios se revertirán al final de la transacción. Esto puede afectar tus expectativas si esperas que los datos persistan.
+
+-   Configuraciones predeterminadas: Spring Boot puede proporcionar configuraciones predeterminadas para la base de datos en memoria y las transacciones, que pueden no coincidir con tu entorno de desarrollo normal.
+
+## Continuando...
+
+## Ignorar el paso 5
+
+5.  para solucionar el problema tendremos que ir a <a href="https://start.spring.io/">spring initialzr</a> y agregaremos la dependencia para la base de datos h2
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+## Correccion
+
+`Agregar la dependencia de la base de datos de h2 no soluciona nada solo es un ejemplo inutil dado en el curso del video lo recomendado es que si la agregaste la elimines o nos dara problemas`
+
+## Continuando...
+
+6.  para solucionar el problema solo debemos agregar una nueva notacion:
+
+        package med.voll.api.domain.medico;
+
+        import org.junit.jupiter.api.Test;
+        import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+        import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+
+        @DataJpaTest
+        @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+        class MedicoRepositoryTest
+
+## Explicacion del codigo:
+
+Cuando realizas pruebas con @DataJpaTest, Spring Boot configura automáticamente una base de datos en memoria para simular las operaciones de la base de datos. Esto es excelente para mantener las pruebas aisladas y rápidas, ya que no afectará tus entornos de desarrollo o producción. Sin embargo, en algunos casos, es posible que necesites que tus pruebas interactúen con una base de datos real, por ejemplo, para probar características específicas de la base de datos o para asegurarte de que tus consultas funcionen en un entorno lo más parecido posible al entorno de producción.
+
+La anotación @AutoConfigureTestDatabase se utiliza para configurar cómo se debe reemplazar la base de datos durante las pruebas. Por defecto, cuando usas @DataJpaTest, Spring Boot reemplaza automáticamente la base de datos con una base de datos en memoria. Sin embargo, si deseas que las pruebas interactúen con una base de datos real, debes cambiar esta configuración.
+
+El uso de @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) en tu prueba de repositorio de médico deshabilita el reemplazo automático de la base de datos. En otras palabras, le estás diciendo a Spring Boot que no reemplace la base de datos configurada y que utilice la base de datos real, que está configurada en tu aplicación principal.
+
+Esto es útil en situaciones en las que necesitas probar consultas específicas, características de la base de datos u otros aspectos que pueden depender de la configuración real de la base de datos. Al deshabilitar el reemplazo automático de la base de datos, aseguras que tu prueba se ejecute en un entorno más parecido al de producción, lo que puede ayudarte a detectar posibles problemas o incompatibilidades.
+
+## Continuando...
+
+7.  Algo que siempre debemos tener presente es el hecho de que tenemos que tener la base de datos de test separada de la de produccion ya que buscamos estar probando, mandando datos erroneos o a veces borrar toda la base de datos
+
+8.  Para hacer algo como lo anterormente mencionado podemos crear un archivo nuevo como el `application.properties` pero para este ejemplo usaremos el formato `.yml` asi que dentro de la carpeta de `resources` crearemos el archivo `application-test.yml` y simplemente agregaremos lo siguiente:
+
+        spring:
+            datasource:
+                url: jdbc:mysql://localhost:3307/vollmed_api_test?createDatabaseIfNotExist=true&serverTimezone=UTC
+                username: root
+                password: Pantera09?
+
+    notaremos que en url tenemos agregado `?createDatabaseIfNotExist=true&serverTimezone=UTC` eso es para que en caso de que no encuentre la base de datos que indicamos, cosa que sucedera por que no la hemos creado, la cree de manera automatica y con la zona horaria actual
+
+9.  Volvemos a `MedicoRepositoryTest` y agregaremos un nuevo tag para indicarle que perfil debe usar, osea el que acabamos de crear:
+
+        @DataJpaTest
+        @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+        @ActiveProfiles("test")
+        class MedicoRepositoryTest
+
+10. Compilamos y despues volvemos a probar el test el cual no deberia fallar y si revisamos la base de datos debe aparecer ahora `vollmed_api_test` en esta
+
+# Testando el repository
