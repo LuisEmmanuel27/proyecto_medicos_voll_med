@@ -413,3 +413,34 @@ Al final el codigo de los tests en `MedicoRespositoryTest` queda de la siguiente
         }
 
 ### Para explicaciones preguntar a chatGPT
+
+# Build con Maven
+
+Maven nos ayuda a realizar el empaquetamiento para posteriormente poder hacer deploy en algun servidor o servicio en la nube
+
+1.  recordaremos que tenemos un perfil para desarrollo y creamos uno para tests solo que en formato `yml`, pues ahora necesitaremos uno nuevo para produccion ya que claramente donde subamos nuestro proyecto no tendra el mismo usuario y contraseña
+
+2.  dentro de la carpeta resources creamos el archivo `application-prod.yml`
+
+3.  agregamos las siguientes configuraciones:
+
+        spring:
+            profiles.active: prod
+            datasource:
+                url: ${DATASOURCE_URL}
+                username: ${DATASOURCE_USERNAME}
+                password: ${DATASOURCE_PASSWORD}
+
+        server:
+            error:
+                include-stacktrace: never
+
+        api:
+            security:
+                secret: ${JWT_SECRET:123456}
+
+4.  agregamos una nueva en application.properties:
+
+        spring.profiles.active=dev, test, prod
+
+5.
