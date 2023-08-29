@@ -443,4 +443,4 @@ Maven nos ayuda a realizar el empaquetamiento para posteriormente poder hacer de
 
         spring.profiles.active=dev, test, prod
 
-5.
+5.  en VSCode en el explorador veremos la seccion de `MAVEN` iremos ahi, abriremos `api` y aparecera `Lifecycle` abrimos dicha seccion y correremos la seccion de `package`
