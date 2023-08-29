@@ -3,7 +3,6 @@ package med.voll.api.domain.paciente;
 import jakarta.persistence.*;
 
 import lombok.*;
-
 import med.voll.api.domain.direccion.Direccion;
 
 @Table(name = "pacientes")

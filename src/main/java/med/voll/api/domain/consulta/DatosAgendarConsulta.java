@@ -6,13 +6,13 @@ import jakarta.validation.constraints.*;
 import med.voll.api.domain.medico.Especialidad;
 
 public record DatosAgendarConsulta(
-                Long id,
+        Long id,
 
-                @NotNull Long idPaciente,
+        @NotNull Long idPaciente,
 
-                Long idMedico,
+        Long idMedico,
 
-                @NotNull @Future LocalDateTime fecha,
+        @NotNull @Future LocalDateTime fecha,
 
-                Especialidad especialidad) {
+        Especialidad especialidad) {
 }

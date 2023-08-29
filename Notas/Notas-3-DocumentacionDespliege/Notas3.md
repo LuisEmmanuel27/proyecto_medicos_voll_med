@@ -190,3 +190,226 @@ Esto es útil en situaciones en las que necesitas probar consultas específicas,
 10. Compilamos y despues volvemos a probar el test el cual no deberia fallar y si revisamos la base de datos debe aparecer ahora `vollmed_api_test` en esta
 
 # Testando el repository
+
+Al final el codigo de los tests en `MedicoRespositoryTest` queda de la siguiente manera:
+
+    package med.voll.api.domain.medico;
+
+    import java.time.LocalDateTime;
+
+    import static org.junit.jupiter.api.Assertions.assertEquals;
+    import static org.junit.jupiter.api.Assertions.assertNull;
+
+    import java.time.DayOfWeek;
+    import java.time.LocalDate;
+    import java.time.temporal.TemporalAdjusters;
+
+    import org.junit.jupiter.api.DisplayName;
+    import org.junit.jupiter.api.Test;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+    import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+    import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+    import org.springframework.test.context.ActiveProfiles;
+
+    import med.voll.api.domain.consulta.Consulta;
+    import med.voll.api.domain.direccion.DatosDireccion;
+    import med.voll.api.domain.paciente.DatosRegistroPaciente;
+    import med.voll.api.domain.paciente.Paciente;
+
+    @DataJpaTest
+    @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+    @ActiveProfiles("test")
+    class MedicoRepositoryTest {
+
+        @Autowired
+        private MedicoRepository medicoRepository;
+
+        @Autowired
+        private TestEntityManager em;
+
+        @Test
+        @DisplayName("Deberia retornar null cuando el medico se encuentre en consulta con otro paciente en ese horario")
+        void seleccionarMedicoConEspecialidadEnFechaEscenario1() {
+
+            var proximoLunes10H = LocalDate.now()
+                    .with(TemporalAdjusters.next(DayOfWeek.MONDAY))
+                    .atTime(10, 0);
+
+            var medico = registrarMedico("Jose", "j@mail.com", "123456", Especialidad.CARDIOLOGIA);
+            var paciente = registrarPaciente("antonio", "a@mail.com", "123.456.789-09");
+
+            registrarConsulta(medico, paciente, proximoLunes10H);
+
+            var medicoLibre = medicoRepository.seleccionarMedicoConEspecialidadEnFecha(Especialidad.CARDIOLOGIA,
+                    proximoLunes10H);
+
+            assertNull(medicoLibre);
+
+        }
+
+        @Test
+        @DisplayName("deberia retornar un medico cuando realice la consulta en la base de datos  en ese horario")
+        void seleccionarMedicoConEspecialidadEnFechaEscenario2() {
+
+            // given
+            var proximoLunes10H = LocalDate.now()
+                    .with(TemporalAdjusters.next(DayOfWeek.MONDAY))
+                    .atTime(10, 0);
+
+            var medico = registrarMedico("Jose", "j@mail.com", "123456", Especialidad.CARDIOLOGIA);
+
+            // when
+            var medicoLibre = medicoRepository.seleccionarMedicoConEspecialidadEnFecha(Especialidad.CARDIOLOGIA,
+                    proximoLunes10H);
+
+            // then
+            assertEquals(medicoLibre, medico);
+        }
+
+        private void registrarConsulta(Medico medico, Paciente paciente, LocalDateTime fecha) {
+            em.persist(new Consulta(medico, paciente, fecha));
+        }
+
+        private Medico registrarMedico(String nombre, String email, String documento, Especialidad especialidad) {
+            var medico = new Medico(datosMedico(nombre, email, documento, especialidad));
+            em.persist(medico);
+            return medico;
+        }
+
+        private Paciente registrarPaciente(String nombre, String email, String documento) {
+            var paciente = new Paciente(datosPaciente(nombre, email, documento));
+            em.persist(paciente);
+            return paciente;
+        }
+
+        private DatosRegistroMedico datosMedico(String nombre, String email, String documento, Especialidad especialidad) {
+            return new DatosRegistroMedico(
+                    nombre,
+                    email,
+                    "61999999999",
+                    documento,
+                    especialidad,
+                    datosDireccion());
+        }
+
+        private DatosRegistroPaciente datosPaciente(String nombre, String email, String documento) {
+            return new DatosRegistroPaciente(
+                    nombre,
+                    email,
+                    "61999999999",
+                    documento,
+                    datosDireccion());
+        }
+
+        private DatosDireccion datosDireccion() {
+            return new DatosDireccion(
+                    " loca",
+                    "azul",
+                    "acapulpo",
+                    "321",
+                    "12");
+        }
+
+    }
+
+### Para explicaciones detalladas usar ChatGPT
+
+# Testeando error 400
+
+1.  Creamos dentro del paquete api de los test un nuevo paquete `controller`
+
+2.  dentro de este creamos una nueva clase test `ConsultaControllerTest` y agregamos el siguiente codigo:
+
+        package med.voll.api.controller;
+
+        import med.voll.api.domain.consulta.AgendaDeConsultaService;
+        import med.voll.api.domain.consulta.DatosAgendarConsulta;
+        import med.voll.api.domain.consulta.DatosDetalleConsulta;
+        import med.voll.api.domain.medico.Especialidad;
+        import org.junit.jupiter.api.DisplayName;
+        import org.junit.jupiter.api.Test;
+        import org.springframework.beans.factory.annotation.Autowired;
+        import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
+        import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+        import org.springframework.boot.test.context.SpringBootTest;
+        import org.springframework.boot.test.json.JacksonTester;
+        import org.springframework.boot.test.mock.mockito.MockBean;
+        import org.springframework.http.HttpStatus;
+        import org.springframework.http.MediaType;
+        import org.springframework.security.test.context.support.WithMockUser;
+        import org.springframework.test.context.ActiveProfiles;
+        import org.springframework.test.web.servlet.MockMvc;
+
+        import java.time.LocalDateTime;
+
+        import static org.assertj.core.api.Assertions.assertThat;
+        import static org.junit.jupiter.api.Assertions.assertEquals;
+        import static org.mockito.ArgumentMatchers.any;
+        import static org.mockito.Mockito.when;
+        import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+        import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+        import java.time.LocalDateTime;
+
+        import static org.junit.jupiter.api.Assertions.assertEquals;
+
+        @SpringBootTest
+        @AutoConfigureMockMvc
+        @AutoConfigureJsonTesters
+        @ActiveProfiles("test")
+        @SuppressWarnings("all")
+        class ConsultaControllerTest {
+
+            @Autowired
+            private MockMvc mvc;
+
+            @Autowired
+            private JacksonTester<DatosAgendarConsulta> agendarConsultaJacksonTester;
+
+            @Autowired
+            private JacksonTester<DatosDetalleConsulta> detalleConsultaJacksonTester;
+
+            @MockBean
+            private AgendaDeConsultaService agendaDeConsultaService;
+
+            @Test
+            @DisplayName("deberia retornar estado http 400 cuando los datos ingresados sean invalidos")
+            @WithMockUser
+            void agendarEscenario1() throws Exception {
+                // given //when
+                var response = mvc.perform(post("/consultas")).andReturn().getResponse();
+
+                // then
+                assertEquals(response.getStatus(), HttpStatus.BAD_REQUEST.value());
+            }
+
+            @Test
+            @DisplayName("deberia retornar estado http 200 cuando los datos ingresados son validos")
+            @WithMockUser
+            void agendarEscenario2() throws Exception {
+                // given
+                var fecha = LocalDateTime.now().plusHours(1);
+                var especialidad = Especialidad.CARDIOLOGIA;
+                var datos = new DatosDetalleConsulta(null, 2L, 5L, fecha);
+
+                // when
+                when(agendaDeConsultaService.agendar(any())).thenReturn(datos);
+
+                var response = mvc.perform(post("/consultas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(agendarConsultaJacksonTester.write(new DatosAgendarConsulta(null, 2L, 5L, fecha, especialidad))
+                                .getJson()))
+                        .andExpect(status().isOk())
+                        .andReturn().getResponse();
+
+                // then
+                assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+                var jsonEsperado = detalleConsultaJacksonTester.write(datos).getJson();
+                assertEquals(jsonEsperado, response.getContentAsString());
+            }
+
+        }
+
+### Para explicaciones preguntar a chatGPT
