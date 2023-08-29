@@ -439,8 +439,14 @@ Maven nos ayuda a realizar el empaquetamiento para posteriormente poder hacer de
             security:
                 secret: ${JWT_SECRET:123456}
 
+    como se puede ver se agregan variables de entortno para la url, username y password por cuestiones de seguridad
+
 4.  agregamos una nueva en application.properties:
 
         spring.profiles.active=dev, test, prod
 
 5.  en VSCode en el explorador veremos la seccion de `MAVEN` iremos ahi, abriremos `api` y aparecera `Lifecycle` abrimos dicha seccion y correremos la seccion de `package`
+
+6.  En caso de error por variable de entorno JAVA_HOME, modificar la ruta de esta de manera que quede `C:\Program Files\Java\jdk-20`
+
+7.  si todo salio bien, veremos que se genera una carpeta target con todos los archivos y un ejecutador .jar el cual podemos ejecutar desde consola recordado pasar los valores de las variables de ambiente que colocamos para que funcione
